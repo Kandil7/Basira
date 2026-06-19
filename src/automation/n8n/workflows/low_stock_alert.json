@@ -1,0 +1,187 @@
+{
+  "name": "Low Stock Alert",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "Every 2 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "check-stock",
+      "name": "Check Low Stock",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/inventory/low-stock",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "={{ $env.INTERNAL_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ threshold: 10.0 }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "check-has-items",
+      "name": "Has Low Stock?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.low_stock_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "format-alert",
+      "name": "Format Alert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [900, 200],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-1",
+              "name": "alert_subject",
+              "value": "=⚠️ Low Stock Alert - {{ $json.low_stock_count }} products below threshold",
+              "type": "string"
+            },
+            {
+              "id": "field-2",
+              "name": "alert_body",
+              "value": "=Low Stock Alert - {{ $now.format('yyyy-MM-dd HH:mm') }}\n\nThreshold: {{ $json.threshold }} units\nProducts below threshold: {{ $json.low_stock_count }}\n\nItems:\n{{ $json.items.map(i => '  - ' + i.product_name + ' (ID: ' + i.product_id + ') - Available: ' + i.quantity_available + ' - Branch: ' + i.branch_id).join('\\n') }}\n\nPlease review and initiate reorder process.",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "send-email",
+      "name": "Email Procurement",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1120, 200],
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM || 'alerts@company.com' }}",
+        "toEmail": "={{ $env.PROCUREMENT_EMAIL || 'procurement@company.com' }}",
+        "subject": "={{ $json.alert_subject }}",
+        "text": "={{ $json.alert_body }}"
+      }
+    },
+    {
+      "id": "no-action",
+      "name": "All Stock OK",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [900, 420]
+    }
+  ],
+  "connections": {
+    "Every 2 Hours": {
+      "main": [
+        [
+          {
+            "node": "Check Low Stock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Low Stock": {
+      "main": [
+        [
+          {
+            "node": "Has Low Stock?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Low Stock?": {
+      "main": [
+        [
+          {
+            "node": "Format Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "All Stock OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Alert": {
+      "main": [
+        [
+          {
+            "node": "Email Procurement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "basira",
+      "id": "1"
+    }
+  ]
+}
