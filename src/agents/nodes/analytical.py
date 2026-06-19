@@ -19,7 +19,6 @@ from src.domain.services.analytics_service import AnalyticsService
 
 logger = structlog.get_logger(__name__)
 
-
 async def analytical_node(
     state: AgentState,
     settings: Settings,
