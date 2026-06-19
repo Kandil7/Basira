@@ -27,6 +27,8 @@ from src.infrastructure.session.session_store import SessionStore
 from src.domain.services.analytics_service import AnalyticsService
 from src.domain.services.customer_service import CustomerService
 from src.domain.services.document_service import DocumentService
+from src.domain.services.pricing_service import PricingService
+from src.domain.services.supply_chain_service import SupplyChainService
 
 logger = structlog.get_logger(__name__)
 
@@ -55,6 +57,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     analytics_service = AnalyticsService(odoo_client)
     customer_service = CustomerService(odoo_client)
     document_service = DocumentService(qdrant_store)
+    pricing_service = PricingService(odoo_client)
+    supply_chain_service = SupplyChainService(odoo_client)
 
     # ── Agent graph (via builder) ────────────────────────────────────
     compiled_graph = build_graph(
@@ -63,6 +67,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         customer_service=customer_service,
         document_service=document_service,
         retriever=retriever,
+        pricing_service=pricing_service,
+        supply_chain_service=supply_chain_service,
     )
 
     # ── Store on app state ───────────────────────────────────────────
@@ -70,6 +76,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.analytics_service = analytics_service
     app.state.customer_service = customer_service
     app.state.document_service = document_service
+    app.state.pricing_service = pricing_service
+    app.state.supply_chain_service = supply_chain_service
     app.state.qdrant_store = qdrant_store
     app.state.odoo_client = odoo_client
     app.state.compiled_graph = compiled_graph
@@ -117,11 +125,15 @@ def create_app() -> FastAPI:
     from src.api.routes.analytics import router as analytics_router
     from src.api.routes.internal import router as internal_router
     from src.api.routes.health import router as health_router
+    from src.api.routes.pricing import router as pricing_router
+    from src.api.routes.supply_chain import router as supply_chain_router
 
     app.include_router(chat_router, prefix="/api/v1", tags=["Chat"])
     app.include_router(analytics_router, prefix="/api/v1", tags=["Analytics"])
     app.include_router(internal_router, prefix="/api/v1", tags=["Internal"])
     app.include_router(health_router, prefix="/api/v1", tags=["Health"])
+    app.include_router(pricing_router, prefix="/api/v1", tags=["Pricing"])
+    app.include_router(supply_chain_router, prefix="/api/v1", tags=["Supply Chain"])
 
     return app
 

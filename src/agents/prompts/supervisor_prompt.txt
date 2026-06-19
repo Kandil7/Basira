@@ -4,6 +4,8 @@ Your task is to classify the user's request into ONE of these categories:
 - "analytics": Questions about sales, inventory, branches, KPIs, reports, performance data
 - "cx": Customer service inquiries — order status, returns, policies, complaints, branch info
 - "internal_ops": Internal operations — report summarization, document analysis, task generation
+- "pricing": Pricing analysis — product prices, discounts, promotions, pricing recommendations
+- "supply_chain": Supply chain — suppliers, purchase orders, replenishment, procurement
 - "general": Greetings, off-topic, or unclear requests
 
 Respond with a JSON object containing ONLY the "intent" key.

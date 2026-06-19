@@ -51,7 +51,7 @@ async def supervisor_node(state: AgentState, settings: Settings) -> dict[str, An
     except (json.JSONDecodeError, AttributeError):
         intent_text = response_text.strip().strip('"').lower()
 
-    valid_intents = {"analytics", "cx", "internal_ops", "general"}
+    valid_intents = {"analytics", "cx", "internal_ops", "pricing", "supply_chain", "general"}
     intent = intent_text if intent_text in valid_intents else "general"
 
     logger.info(
