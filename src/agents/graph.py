@@ -3,6 +3,8 @@ LangGraph supervisor graph.
 
 Builds the main agent graph with the supervisor routing to specialized
 agent nodes based on intent classification.
+
+Phase 2: Added pricing and supply chain agents.
 """
 
 from typing import Any, Callable
@@ -13,12 +15,16 @@ from src.agents.nodes.analytical import create_analytical_node
 from src.agents.nodes.cx import create_cx_node
 from src.agents.nodes.general import create_general_node
 from src.agents.nodes.internal_ops import create_internal_ops_node
+from src.agents.nodes.pricing import create_pricing_node
+from src.agents.nodes.supply_chain import create_supply_chain_node
 from src.agents.nodes.supervisor import create_supervisor_node
 from src.agents.state import AgentState
 from src.config.settings import Settings
 from src.domain.services.analytics_service import AnalyticsService
 from src.domain.services.customer_service import CustomerService
 from src.domain.services.document_service import DocumentService
+from src.domain.services.pricing_service import PricingService
+from src.domain.services.supply_chain_service import SupplyChainService
 from src.infrastructure.rag.retriever import Retriever
 
 import structlog
@@ -41,6 +47,8 @@ def _route_by_intent(state: AgentState) -> str:
         "analytics": "analytical_agent",
         "cx": "cx_agent",
         "internal_ops": "internal_ops_agent",
+        "pricing": "pricing_agent",
+        "supply_chain": "supply_chain_agent",
     }
     return routing_map.get(intent, "general_agent")
 
@@ -51,6 +59,8 @@ def build_supervisor_graph(
     customer_service: CustomerService,
     document_service: DocumentService,
     retriever: Retriever,
+    pricing_service: PricingService | None = None,
+    supply_chain_service: SupplyChainService | None = None,
 ) -> StateGraph:
     """
     Build the complete supervisor agent graph.
@@ -61,12 +71,16 @@ def build_supervisor_graph(
     3. Routes to the appropriate specialized agent
     4. Returns the response
 
+    Phase 2: Added pricing and supply chain agents.
+
     Args:
         settings: Application settings
         analytics_service: Analytics domain service
         customer_service: Customer service domain service
         document_service: Document processing domain service
         retriever: RAG retriever
+        pricing_service: Pricing domain service (optional)
+        supply_chain_service: Supply chain domain service (optional)
 
     Returns:
         Compiled StateGraph ready for invocation.
@@ -81,12 +95,33 @@ def build_supervisor_graph(
     # Build the graph
     graph = StateGraph(AgentState)
 
-    # Add nodes
+    # Add core nodes
     graph.add_node("supervisor", supervisor)
     graph.add_node("analytical_agent", analytical)
     graph.add_node("cx_agent", cx)
     graph.add_node("internal_ops_agent", internal_ops)
     graph.add_node("general_agent", general)
+
+    # Build routing map and edges
+    routing_edges = {
+        "analytical_agent": "analytical_agent",
+        "cx_agent": "cx_agent",
+        "internal_ops_agent": "internal_ops_agent",
+        "general_agent": "general_agent",
+    }
+
+    # Add optional agents
+    if pricing_service is not None:
+        pricing = create_pricing_node(settings, pricing_service)
+        graph.add_node("pricing_agent", pricing)
+        graph.add_edge("pricing_agent", END)
+        routing_edges["pricing_agent"] = "pricing_agent"
+
+    if supply_chain_service is not None:
+        supply_chain = create_supply_chain_node(settings, supply_chain_service)
+        graph.add_node("supply_chain_agent", supply_chain)
+        graph.add_edge("supply_chain_agent", END)
+        routing_edges["supply_chain_agent"] = "supply_chain_agent"
 
     # Set entry point
     graph.set_entry_point("supervisor")
@@ -95,12 +130,7 @@ def build_supervisor_graph(
     graph.add_conditional_edges(
         "supervisor",
         _route_by_intent,
-        {
-            "analytical_agent": "analytical_agent",
-            "cx_agent": "cx_agent",
-            "internal_ops_agent": "internal_ops_agent",
-            "general_agent": "general_agent",
-        },
+        routing_edges,
     )
 
     # All agent nodes go to END
@@ -109,7 +139,10 @@ def build_supervisor_graph(
     graph.add_edge("internal_ops_agent", END)
     graph.add_edge("general_agent", END)
 
-    logger.info("supervisor_graph.built")
+    logger.info(
+        "supervisor_graph.built",
+        agents=list(routing_edges.keys()),
+    )
     return graph
 
 
