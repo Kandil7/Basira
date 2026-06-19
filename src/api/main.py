@@ -1,0 +1,130 @@
+"""
+FastAPI application factory.
+
+Creates and configures the FastAPI app with all routes, middleware,
+and dependency injection.
+
+Phase 3: Uses builder.build_graph() for graph construction.
+"""
+
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
+import structlog
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from src.agents.builder import build_graph
+from src.api.middleware.auth import AuthMiddleware
+from src.api.middleware.rate_limit import RateLimitMiddleware
+from src.config.settings import Settings, get_settings
+from src.infrastructure.data.odoo_client import OdooClient
+from src.infrastructure.logging.config import setup_logging
+from src.infrastructure.rag.retriever import Retriever
+from src.infrastructure.rag.vectorstore import QdrantVectorStore
+from src.infrastructure.rag.embeddings import EmbeddingService
+from src.infrastructure.session.session_store import SessionStore
+from src.domain.services.analytics_service import AnalyticsService
+from src.domain.services.customer_service import CustomerService
+from src.domain.services.document_service import DocumentService
+
+logger = structlog.get_logger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """
+    Application lifespan — startup and shutdown hooks.
+
+    Initializes infrastructure clients and builds the agent graph
+    via the builder factory.
+    """
+    settings = get_settings()
+
+    setup_logging(settings.app_log_level)
+    logger.info("app.starting", env=settings.app_env)
+
+    # ── Infrastructure ───────────────────────────────────────────────
+    odoo_client = OdooClient(settings)
+    qdrant_store = QdrantVectorStore(settings)
+    embedding_service = EmbeddingService(settings)
+    retriever = Retriever(qdrant_store, settings, embedding_service)
+    session_store = SessionStore()
+
+    # ── Domain services ──────────────────────────────────────────────
+    analytics_service = AnalyticsService(odoo_client)
+    customer_service = CustomerService(odoo_client)
+    document_service = DocumentService(qdrant_store)
+
+    # ── Agent graph (via builder) ────────────────────────────────────
+    compiled_graph = build_graph(
+        settings=settings,
+        analytics_service=analytics_service,
+        customer_service=customer_service,
+        document_service=document_service,
+        retriever=retriever,
+    )
+
+    # ── Store on app state ───────────────────────────────────────────
+    app.state.settings = settings
+    app.state.analytics_service = analytics_service
+    app.state.customer_service = customer_service
+    app.state.document_service = document_service
+    app.state.qdrant_store = qdrant_store
+    app.state.odoo_client = odoo_client
+    app.state.compiled_graph = compiled_graph
+    app.state.session_store = session_store
+    app.state.embedding_service = embedding_service
+
+    logger.info("app.started")
+
+    yield
+
+    logger.info("app.shutting_down")
+
+
+def create_app() -> FastAPI:
+    """
+    Create and configure the FastAPI application.
+
+    Returns:
+        Configured FastAPI instance.
+    """
+    app = FastAPI(
+        title="Basira API",
+        description="Basira — Multi-Agent AI Platform for Retail & Food (Arabic-first)",
+        version="0.1.0",
+        lifespan=lifespan,
+    )
+
+    # CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Authentication middleware (before rate limiting)
+    app.add_middleware(AuthMiddleware)
+
+    # Rate limiting middleware
+    app.add_middleware(RateLimitMiddleware)
+
+    # Include routers
+    from src.api.routes.chat import router as chat_router
+    from src.api.routes.analytics import router as analytics_router
+    from src.api.routes.internal import router as internal_router
+    from src.api.routes.health import router as health_router
+
+    app.include_router(chat_router, prefix="/api/v1", tags=["Chat"])
+    app.include_router(analytics_router, prefix="/api/v1", tags=["Analytics"])
+    app.include_router(internal_router, prefix="/api/v1", tags=["Internal"])
+    app.include_router(health_router, prefix="/api/v1", tags=["Health"])
+
+    return app
+
+
+# Module-level app instance for uvicorn
+app = create_app()
