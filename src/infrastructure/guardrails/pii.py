@@ -41,7 +41,7 @@ class PIIPattern:
 DEFAULT_PII_PATTERNS = [
     PIIPattern(
         name="phone_number",
-        pattern=r"(?<!\d)(\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}(?!\d)",
+        pattern=r"(?<!\d)(\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}(?!\d)|(?<!\d)\d{3}[-.\s]?\d{4}(?!\d)",
         replacement="[PHONE]",
         description="Phone numbers (international and local)",
     ),

@@ -210,7 +210,7 @@ class GuardrailsEngine:
                 if rule.action == GuardrailAction.BLOCK:
                     return False, f"Blocked by {rule.name}: {reason}"
                 elif rule.action == GuardrailAction.ESCALATE:
-                    return False, f"Requires human review: {reason}"
+                    return False, f"Requires human review ({rule.name}): {reason}"
 
         return True, ""
 
@@ -257,13 +257,16 @@ class GuardrailsEngine:
                 if rule.action == GuardrailAction.BLOCK:
                     return False, f"Blocked by {rule.name}: {reason}", ""
                 elif rule.action == GuardrailAction.REDACT:
-                    # Truncate to max length
+                    # Truncate to max length (accounting for suffix)
                     if hasattr(rule, 'max_length'):
-                        filtered_text = filtered_text[:rule.max_length] + "\n\n[Content truncated by guardrails]"
+                        suffix = "\n\n[Content truncated by guardrails]"
+                        max_content = rule.max_length - len(suffix)
+                        filtered_text = filtered_text[:max_content] + suffix
                     return True, f"Redacted by {rule.name}: {reason}", filtered_text
                 elif rule.action == GuardrailAction.WARN:
-                    # Log warning but allow
+                    # Log warning and return reason
                     logger.warning("guardrail.warning", rule=rule.name, reason=reason)
+                    return True, f"Warning ({rule.name}): {reason}", filtered_text
 
         return True, "", filtered_text
 
