@@ -5,7 +5,7 @@
 [![CI](https://img.shields.io/badge/CI-Passing-brightgreen)](#)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue)](#)
 [![Tests](https://img.shields.io/badge/Tests-67 Passing-brightgreen)](#)
-[![Phase](https://img.shields.io/badge/Phase-3%20Complete-brightgreen)](#)
+[![Phase](https://img.shields.io/badge/Phase-3%20Sprint%204-orange)](#)
 
 ## Overview
 
@@ -81,6 +81,22 @@ Basira is a production-grade AI agents platform for retail and food companies, b
 - Python 3.11+
 - Docker & Docker Compose
 - Groq API key (groq.com)
+- Qdrant API key (qdrant.io)
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `GROQ_API_KEY` | Groq API key for LLM | Required |
+| `QDRANT_API_KEY` | Qdrant API key | Optional |
+| `QDRANT_URL` | Qdrant server URL | `http://localhost:6333` |
+| `REDIS_URL` | Redis connection URL | `redis://localhost:6379` |
+| `POSTGRES_URL` | PostgreSQL connection URL | `postgresql://...` |
+| `ODOO_URL` | Odoo XML-RPC URL | Optional |
+| `ODOO_DB` | Odoo database name | Optional |
+| `ODOO_USERNAME` | Odoo username | Optional |
+| `ODOO_PASSWORD` | Odoo password | Optional |
+| `INTERNAL_API_KEY` | API authentication key | `change-me-in-production` |
 
 ### Installation
 
@@ -197,6 +213,7 @@ basira/
 
 ## Documentation
 
+- [Overview](docs/OVERVIEW.md) — Project overview and quick start
 - [Architecture](docs/ARCHITECTURE.md) — System design and Clean Architecture layers
 - [Agents](docs/AGENTS.md) — LangGraph agent specifications
 - [Data Sources](docs/DATA_SOURCES.md) — Odoo, Qdrant, and DB adapters

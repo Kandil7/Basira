@@ -17,6 +17,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.agents.builder import build_graph
 from src.api.middleware.auth import AuthMiddleware
 from src.api.middleware.rate_limit import RateLimitMiddleware
+from src.api.middleware.guardrails import GuardrailsMiddleware
+from src.api.middleware.rbac import RBACMiddleware
 from src.config.settings import Settings, get_settings
 from src.infrastructure.data.odoo_client import OdooClient
 from src.infrastructure.logging.config import setup_logging
@@ -151,6 +153,12 @@ def create_app() -> FastAPI:
 
     # Rate limiting middleware
     app.add_middleware(RateLimitMiddleware)
+
+    # Guardrails middleware
+    app.add_middleware(GuardrailsMiddleware)
+
+    # RBAC middleware
+    app.add_middleware(RBACMiddleware)
 
     # Include routers
     from src.api.routes.chat import router as chat_router
