@@ -4,46 +4,40 @@
 
 [![CI](https://img.shields.io/badge/CI-Passing-brightgreen)](#)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue)](#)
-[![Tests](https://img.shields.io/badge/Tests-67 Passing-brightgreen)](#)
-[![Phase](https://img.shields.io/badge/Phase-3%20Sprint%204-orange)](#)
+[![Tests](https://img.shields.io/badge/Tests-123 Passing-brightgreen)](#)
+[![Phase](https://img.shields.io/badge/Phase-3%20Complete-brightgreen)](#)
+[![License](https://img.shields.io/badge/License-MIT-blue)](#)
 
 ## Overview
 
-Basira is a production-grade AI agents platform for retail and food companies, built with Clean Architecture and Arabic-first NLU. It integrates with Odoo ERP for real-time data access and uses LangGraph for stateful multi-agent orchestration.
+Basira is a production-grade AI agents platform for retail and food companies, built with **Clean Architecture** and **Arabic-first NLU**. It integrates with Odoo ERP for real-time data access and uses LangGraph for stateful multi-agent orchestration.
 
 ### Key Features
 
-- 🤖 **6 AI Agents** — Analytics, CX, Internal Ops, Pricing, Supply Chain, General
-- 🔍 **Advanced RAG** — Hybrid search (semantic + BM25), reranking, query expansion
-- 🔐 **Production Security** — RBAC, guardrails, PII detection, rate limiting
-- 📊 **Real-time Dashboard** — Streamlit UI with chat, analytics, and metrics
-- 🔄 **n8n Automation** — 3 workflow templates for reports, CX, and alerts
-- 📈 **67 Tests** — Unit + integration tests with mocked dependencies
+| Feature | Description |
+|---------|-------------|
+| 🤖 **6 AI Agents** | Analytics, CX, Internal Ops, Pricing, Supply Chain, General |
+| 🔍 **Advanced RAG** | Hybrid search (semantic + BM25), reranking, query expansion, compression |
+| 🔐 **Production Security** | RBAC, guardrails, PII detection, rate limiting |
+| 📊 **Real-time Dashboard** | Streamlit UI with chat, analytics, and metrics |
+| 🔄 **n8n Automation** | 3 workflow templates for reports, CX, and alerts |
+| 📈 **123 Tests** | Unit, integration, and E2E tests with mocked dependencies |
+| 🗄️ **Persistent Storage** | Redis sessions, PostgreSQL audit log, Qdrant RAG |
+| 🔌 **Connection Pooling** | Odoo and Qdrant connection pools for high concurrency |
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Backend** | Python 3.11+ / FastAPI |
-| **Agent Orchestration** | LangGraph (stateful multi-agent graphs) |
-| **LLM** | Groq (groq.com) — fast inference, OpenAI-compatible |
-| **Vector Store** | Qdrant (self-hosted via Docker) |
-| **Session Store** | Redis (with in-memory fallback) |
-| **Audit Log** | PostgreSQL + SQLAlchemy async |
-| **Dashboard** | Streamlit |
-| **Automation** | n8n (workflow JSONs in-repo) |
-| **CI/CD** | GitHub Actions |
-
-## Agents
-
-| Agent | Purpose | Tools |
-|-------|---------|-------|
-| **Analytical Agent** | Sales, inventory, branch analytics | Daily sales, inventory status, branch KPIs |
-| **Customer Service Agent** | Customer inquiries via RAG + Odoo | Order status, customer info, policy lookup |
-| **Internal Ops Agent** | Report summarization, KPI extraction | Document search, summarize, extract KPIs |
-| **Pricing Agent** | Price analysis, discounts, recommendations | Product prices, discount analysis |
-| **Supply Chain Agent** | Suppliers, procurement, replenishment | Suppliers, purchase orders, performance |
-| **General Agent** | Fallback for greetings and unclear queries | — |
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| **Backend** | Python 3.11+ / FastAPI | REST API and WebSocket support |
+| **Agent Orchestration** | LangGraph | Stateful multi-agent graphs with checkpoints |
+| **LLM** | Groq (groq.com) | Fast inference, OpenAI-compatible |
+| **Vector Store** | Qdrant | Semantic search and RAG |
+| **Session Store** | Redis | Persistent conversation history |
+| **Audit Log** | PostgreSQL | Agent action audit trail |
+| **Dashboard** | Streamlit | Internal monitoring UI |
+| **Automation** | n8n | Workflow orchestration |
+| **CI/CD** | GitHub Actions | Automated testing and deployment |
 
 ## Architecture
 
@@ -81,22 +75,6 @@ Basira is a production-grade AI agents platform for retail and food companies, b
 - Python 3.11+
 - Docker & Docker Compose
 - Groq API key (groq.com)
-- Qdrant API key (qdrant.io)
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `GROQ_API_KEY` | Groq API key for LLM | Required |
-| `QDRANT_API_KEY` | Qdrant API key | Optional |
-| `QDRANT_URL` | Qdrant server URL | `http://localhost:6333` |
-| `REDIS_URL` | Redis connection URL | `redis://localhost:6379` |
-| `POSTGRES_URL` | PostgreSQL connection URL | `postgresql://...` |
-| `ODOO_URL` | Odoo XML-RPC URL | Optional |
-| `ODOO_DB` | Odoo database name | Optional |
-| `ODOO_USERNAME` | Odoo username | Optional |
-| `ODOO_PASSWORD` | Odoo password | Optional |
-| `INTERNAL_API_KEY` | API authentication key | `change-me-in-production` |
 
 ### Installation
 
@@ -109,7 +87,7 @@ cd basira
 cp .env.example .env
 # Edit .env with your credentials
 
-# 3. Start services (Qdrant + Redis + PostgreSQL)
+# 3. Start services (Redis + PostgreSQL + Qdrant)
 docker compose up -d
 
 # 4. Install dependencies
@@ -167,8 +145,8 @@ basira/
 │   │   ├── builder.py       # Graph factory
 │   │   └── state.py         # AgentState definition
 │   ├── api/                 # FastAPI routes & middleware
-│   │   ├── routes/          # 13 API endpoints
-│   │   └── middleware/      # Auth, rate limiting
+│   │   ├── routes/          # 14 API endpoints
+│   │   └── middleware/      # Auth, rate limiting, guardrails, RBAC
 │   ├── domain/              # Business logic (Clean Architecture)
 │   │   ├── models/          # Pydantic data models
 │   │   ├── interfaces/      # Abstract contracts
@@ -182,53 +160,105 @@ basira/
 │   │   ├── rbac/            # Role-based access control
 │   │   ├── metrics/         # Real-time monitoring
 │   │   ├── pooling/         # Connection pooling
+│   │   ├── collaboration/   # Multi-agent delegation
+│   │   ├── memory/          # Persistent conversation memory
+│   │   ├── agent_context/   # Context-aware responses
 │   │   └── evaluation/      # LLM evaluation framework
 │   ├── dashboard/           # Streamlit dashboard
 │   └── automation/          # n8n workflow JSONs
-├── tests/                   # 67 tests (unit + integration)
+├── tests/                   # 123 tests (unit + integration + E2E)
 ├── docs/                    # Architecture & API docs
 ├── .github/workflows/       # CI/CD pipeline
 ├── docker-compose.yml       # Redis + PostgreSQL + Qdrant + API
 └── pyproject.toml           # Dependencies & config
 ```
 
+## Agents
+
+| Agent | Purpose | Tools | API Endpoints |
+|-------|---------|-------|---------------|
+| **Analytical Agent** | Sales, inventory, branch analytics | Daily sales, inventory status, branch KPIs | `/reports/daily`, `/kpis/branches` |
+| **Customer Service Agent** | Customer inquiries via RAG + Odoo | Order status, customer info, policy lookup | `/chat` (cx intent) |
+| **Internal Ops Agent** | Report summarization, KPI extraction | Document search, summarize, extract KPIs | `/internal/summarize`, `/internal/search` |
+| **Pricing Agent** | Price analysis, discounts, recommendations | Product prices, discount analysis | `/pricing/products`, `/pricing/recommendations` |
+| **Supply Chain Agent** | Suppliers, procurement, replenishment | Suppliers, purchase orders, performance | `/supply-chain/*` |
+| **General Agent** | Fallback for greetings and unclear queries | — | `/chat` (general intent) |
+
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/chat` | Chat with AI agents (supervisor entry) |
-| POST | `/api/v1/reports/daily` | Daily branch reports |
-| POST | `/api/v1/kpis/branches` | Branch KPIs |
-| POST | `/api/v1/inventory/low-stock` | Low stock alerts |
-| POST | `/api/v1/pricing/products` | Product pricing |
-| POST | `/api/v1/pricing/recommendations` | Pricing recommendations |
-| POST | `/api/v1/pricing/discounts` | Discount analysis |
-| POST | `/api/v1/supply-chain/suppliers` | Supplier list |
-| POST | `/api/v1/supply-chain/replenishment` | Replenishment alerts |
-| POST | `/api/v1/supply-chain/purchase-orders` | Purchase orders |
-| POST | `/api/v1/supply-chain/supplier-performance` | Supplier performance |
-| POST | `/api/v1/internal/summarize` | Document upload & summarization |
-| POST | `/api/v1/internal/search` | Semantic document search |
-| GET | `/api/v1/health` | System health check |
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/v1/chat` | Chat with AI agents (supervisor entry) | ✅ |
+| POST | `/api/v1/reports/daily` | Daily branch reports | ✅ |
+| POST | `/api/v1/kpis/branches` | Branch KPIs | ✅ |
+| POST | `/api/v1/inventory/low-stock` | Low stock alerts | ✅ |
+| POST | `/api/v1/pricing/products` | Product pricing | ✅ |
+| POST | `/api/v1/pricing/recommendations` | Pricing recommendations | ✅ |
+| POST | `/api/v1/pricing/discounts` | Discount analysis | ✅ |
+| POST | `/api/v1/supply-chain/suppliers` | Supplier list | ✅ |
+| POST | `/api/v1/supply-chain/replenishment` | Replenishment alerts | ✅ |
+| POST | `/api/v1/supply-chain/purchase-orders` | Purchase orders | ✅ |
+| POST | `/api/v1/supply-chain/supplier-performance` | Supplier performance | ✅ |
+| POST | `/api/v1/internal/summarize` | Document upload & summarization | ✅ |
+| POST | `/api/v1/internal/search` | Semantic document search | ✅ |
+| GET | `/api/v1/health` | System health check | ❌ |
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `GROQ_API_KEY` | Groq API key for LLM | Required |
+| `GROQ_MODEL` | Groq model name | `llama-3.3-70b-versatile` |
+| `QDRANT_HOST` | Qdrant server host | `localhost` |
+| `QDRANT_PORT` | Qdrant server port | `6333` |
+| `REDIS_URL` | Redis connection URL | `redis://localhost:6379/0` |
+| `DATABASE_URL` | PostgreSQL connection URL | `postgresql+asyncpg://basira:basira@localhost:5432/basira` |
+| `ODOO_URL` | Odoo XML-RPC URL | Optional |
+| `ODOO_DB` | Odoo database name | Optional |
+| `ODOO_USERNAME` | Odoo username | Optional |
+| `ODOO_PASSWORD` | Odoo password | Optional |
+| `INTERNAL_API_KEY` | API authentication key | `change-me-in-production` |
+| `APP_ENV` | Application environment | `development` |
+
+## Docker Services
+
+| Service | Port | Description |
+|---------|------|-------------|
+| **API** | 8000 | FastAPI application |
+| **Dashboard** | 8501 | Streamlit dashboard |
+| **Redis** | 6379 | Session store & cache |
+| **PostgreSQL** | 5432 | Audit log & persistence |
+| **Qdrant** | 6333 | Vector store |
 
 ## Documentation
 
-- [Overview](docs/OVERVIEW.md) — Project overview and quick start
-- [Architecture](docs/ARCHITECTURE.md) — System design and Clean Architecture layers
-- [Agents](docs/AGENTS.md) — LangGraph agent specifications
-- [Data Sources](docs/DATA_SOURCES.md) — Odoo, Qdrant, and DB adapters
-- [API Reference](docs/API_REFERENCE.md) — FastAPI endpoint docs
-- [n8n Workflows](docs/N8N_WORKFLOWS.md) — Automation workflow docs
-- [Branching Strategy](docs/BRANCHING_STRATEGY.md) — Git workflow guidelines
+| Document | Description |
+|----------|-------------|
+| [Architecture](docs/ARCHITECTURE.md) | System design and Clean Architecture layers |
+| [Agents](docs/AGENTS.md) | LangGraph agent specifications |
+| [Data Sources](docs/DATA_SOURCES.md) | Odoo, Qdrant, and DB adapters |
+| [API Reference](docs/API_REFERENCE.md) | FastAPI endpoint docs |
+| [n8n Workflows](docs/N8N_WORKFLOWS.md) | Automation workflow docs |
+| [Branching Strategy](docs/BRANCHING_STRATEGY.md) | Git workflow guidelines |
 
 ## Development
 
 ### Branching Strategy
 
-- `main` — Production-ready code
-- `develop` — Integration branch
-- `feature/*` — Feature development
-- `release/*` — Release preparation
+```
+main ─────────────────────────────────────────────● (release)
+           │                                    /
+develop ───●──●──●──●──●──●──●──●──●──●──●──●──●
+             │  │  │  │  │  │  │  │  │  │  │  │
+             │  │  │  │  │  │  │  │  │  │  │  └─ feature/sprint6
+             │  │  │  │  │  │  │  │  │  │  └──── feature/sprint5
+             │  │  │  │  │  │  │  │  │  └─────── feature/sprint4
+             │  │  │  │  │  │  │  │  └────────── feature/sprint3
+             │  │  │  │  │  │  │  └───────────── feature/sprint2
+             │  │  │  │  │  │  └──────────────── feature/sprint1
+             │  │  │  │  │  └─────────────────── feature/phase2
+             │  │  │  │  └────────────────────── feature/phase1
+```
 
 ### Commit Convention
 
@@ -240,6 +270,14 @@ fix(api): handle empty response from Odoo
 test: add unit tests for guardrails engine
 docs: update API reference with new endpoints
 ```
+
+### Phase Progress
+
+| Phase | Focus | Status |
+|-------|-------|--------|
+| **Phase 1** | MVP — Core agents, API, RAG | ✅ Complete |
+| **Phase 2** | Advanced — Pricing, Supply Chain, Eval | ✅ Complete |
+| **Phase 3** | Production — Redis, PostgreSQL, Dashboard, Security | ✅ Complete |
 
 ## License
 
