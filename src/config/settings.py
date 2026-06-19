@@ -3,6 +3,8 @@ Application settings loaded from environment variables.
 
 Uses pydantic-settings for type-safe configuration with validation.
 All settings are loaded once at startup and cached.
+
+Phase 3: Added Redis, PostgreSQL, and connection pool settings.
 """
 
 from functools import lru_cache
@@ -45,6 +47,21 @@ class Settings(BaseSettings):
     n8n_webhook_base: str = ""
     n8n_api_key: str = ""
 
+    # ── Redis (Session Store & Cache) ─────────────────────────────────
+    redis_url: str = "redis://localhost:6379/0"
+    redis_session_ttl: int = 3600  # 1 hour
+    redis_max_connections: int = 20
+
+    # ── PostgreSQL (Audit Log & Persistence) ──────────────────────────
+    database_url: str = "postgresql+asyncpg://basira:basira@localhost:5432/basira"
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
+
+    # ── Connection Pooling ────────────────────────────────────────────
+    odoo_pool_size: int = 5
+    odoo_pool_timeout: int = 30
+    qdrant_pool_size: int = 5
+
     @property
     def qdrant_url(self) -> str:
         """Full Qdrant URL including port."""
@@ -59,6 +76,21 @@ class Settings(BaseSettings):
     def odoo_object_url(self) -> str:
         """Odoo object XML-RPC endpoint URL."""
         return f"{self.odoo_url}/xmlrpc/2/object"
+
+    @property
+    def redis_host(self) -> str:
+        """Extract host from Redis URL."""
+        # redis://localhost:6379/0 -> localhost
+        from urllib.parse import urlparse
+        parsed = urlparse(self.redis_url)
+        return parsed.hostname or "localhost"
+
+    @property
+    def redis_port(self) -> int:
+        """Extract port from Redis URL."""
+        from urllib.parse import urlparse
+        parsed = urlparse(self.redis_url)
+        return parsed.port or 6379
 
 
 @lru_cache

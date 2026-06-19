@@ -4,7 +4,7 @@ FastAPI application factory.
 Creates and configures the FastAPI app with all routes, middleware,
 and dependency injection.
 
-Phase 3: Uses builder.build_graph() for graph construction.
+Phase 3: Added Redis session store, PostgreSQL audit log, and connection pooling.
 """
 
 from contextlib import asynccontextmanager
@@ -23,7 +23,11 @@ from src.infrastructure.logging.config import setup_logging
 from src.infrastructure.rag.retriever import Retriever
 from src.infrastructure.rag.vectorstore import QdrantVectorStore
 from src.infrastructure.rag.embeddings import EmbeddingService
+from src.infrastructure.session.redis_store import RedisSessionStore
 from src.infrastructure.session.session_store import SessionStore
+from src.infrastructure.database.audit import AuditLogService
+from src.infrastructure.database.models import init_database, create_tables, close_database
+from src.infrastructure.pooling import init_pools, get_pool_stats
 from src.domain.services.analytics_service import AnalyticsService
 from src.domain.services.customer_service import CustomerService
 from src.domain.services.document_service import DocumentService
@@ -51,7 +55,31 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     qdrant_store = QdrantVectorStore(settings)
     embedding_service = EmbeddingService(settings)
     retriever = Retriever(qdrant_store, settings, embedding_service)
-    session_store = SessionStore()
+
+    # Session store (Redis with in-memory fallback)
+    try:
+        session_store = RedisSessionStore(settings)
+        logger.info("session_store.redis")
+    except Exception as e:
+        logger.warning("session_store.fallback", error=str(e))
+        session_store = SessionStore()
+
+    # Database (PostgreSQL for audit log)
+    try:
+        init_database(settings)
+        await create_tables()
+        audit_log = AuditLogService(settings)
+        logger.info("database.postgres")
+    except Exception as e:
+        logger.warning("database.unavailable", error=str(e))
+        audit_log = None
+
+    # Connection pools
+    try:
+        init_pools(settings)
+        logger.info("pools.initialized")
+    except Exception as e:
+        logger.warning("pools.init_failed", error=str(e))
 
     # ── Domain services ──────────────────────────────────────────────
     analytics_service = AnalyticsService(odoo_client)
@@ -83,12 +111,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.compiled_graph = compiled_graph
     app.state.session_store = session_store
     app.state.embedding_service = embedding_service
+    app.state.audit_log = audit_log
+    app.state.get_pool_stats = get_pool_stats
 
     logger.info("app.started")
 
     yield
 
+    # Shutdown
     logger.info("app.shutting_down")
+    await close_database()
 
 
 def create_app() -> FastAPI:
