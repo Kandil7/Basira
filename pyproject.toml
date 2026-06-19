@@ -48,6 +48,9 @@ dependencies = [
     "structlog>=23.2.0",
     "tenacity>=8.2.0",
 
+    # Dashboard
+    "streamlit>=1.30.0",
+
     # Observability
     "opentelemetry-api>=1.21.0",
     "opentelemetry-sdk>=1.21.0",
