@@ -69,11 +69,9 @@ ROLE_PERMISSIONS: dict[Role, set[Permission]] = {
     },
     Role.VIEWER: {
         Permission.CHAT,
-        Permission.ANALYTICS_READ,
     },
     Role.API: {
         Permission.CHAT,
-        Permission.ANALYTICS_READ,
         Permission.CX_READ,
         Permission.DOCUMENTS_READ,
     },
