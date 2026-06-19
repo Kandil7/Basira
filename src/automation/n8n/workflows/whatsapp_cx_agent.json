@@ -1,0 +1,206 @@
+{
+  "name": "WhatsApp CX Agent",
+  "nodes": [
+    {
+      "id": "whatsapp-trigger",
+      "name": "WhatsApp Message",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "path": "whatsapp-cx",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "whatsapp-cx-webhook"
+    },
+    {
+      "id": "extract-info",
+      "name": "Extract Customer Info",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 300],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-1",
+              "name": "customer_phone",
+              "value": "={{ $json.body?.from || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "field-2",
+              "name": "message_text",
+              "value": "={{ $json.body?.text?.body || $json.body?.message || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "field-3",
+              "name": "message_id",
+              "value": "={{ $json.body?.id || $json.messageId || '' }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "call-cx-agent",
+      "name": "Call CX Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_BASE_URL }}/api/v1/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Key",
+              "value": "={{ $env.INTERNAL_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ query: $json.message_text, channel: 'whatsapp', metadata: { customer_phone: $json.customer_phone, message_id: $json.message_id } }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "check-escalation",
+      "name": "Check Escalation",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.agent }}",
+              "rightValue": "cx",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "reply-whatsapp",
+      "name": "Reply via WhatsApp",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 200],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'sent', agent: $json.agent, response: $json.response }) }}"
+      }
+    },
+    {
+      "id": "log-escalation",
+      "name": "Log Escalation",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1120, 420],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-1",
+              "name": "escalation_logged",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "field-2",
+              "name": "agent",
+              "value": "={{ $json.agent }}",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "WhatsApp Message": {
+      "main": [
+        [
+          {
+            "node": "Extract Customer Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Customer Info": {
+      "main": [
+        [
+          {
+            "node": "Call CX Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call CX Agent": {
+      "main": [
+        [
+          {
+            "node": "Check Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Escalation": {
+      "main": [
+        [
+          {
+            "node": "Reply via WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "basira",
+      "id": "1"
+    }
+  ]
+}
