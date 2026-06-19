@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "basira"
-version = "0.1.0"
+version = "1.0.0"
 description = "Basira — Multi-Agent AI Platform for Retail & Food (Arabic-first)"
 readme = "README.md"
 license = { text = "MIT" }
@@ -36,10 +36,20 @@ dependencies = [
     "pypdf>=3.17.0",
     "openpyxl>=3.1.0",
 
+    # Session & Cache
+    "redis>=5.0.0",
+
+    # Database
+    "asyncpg>=0.29.0",
+    "sqlalchemy>=2.0.0",
+
     # Utilities
     "python-dotenv>=1.0.0",
     "structlog>=23.2.0",
     "tenacity>=8.2.0",
+
+    # Dashboard
+    "streamlit>=1.30.0",
 
     # Observability
     "opentelemetry-api>=1.21.0",

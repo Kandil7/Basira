@@ -1,6 +1,36 @@
 version: "3.9"
 
 services:
+  # ── Redis (Session Store & Cache) ──────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── PostgreSQL (Audit Log & Persistence) ───────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: basira
+      POSTGRES_USER: basira
+      POSTGRES_PASSWORD: basira
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U basira"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ── Qdrant Vector Database ──────────────────────────────────────────────
   qdrant:
     image: qdrant/qdrant:v1.7.4
@@ -27,9 +57,15 @@ services:
     env_file:
       - .env
     environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql+asyncpg://basira:basira@postgres:5432/basira
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333
     depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
       qdrant:
         condition: service_healthy
     volumes:
@@ -38,4 +74,6 @@ services:
       uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 
 volumes:
+  redis_data:
+  postgres_data:
   qdrant_data:
