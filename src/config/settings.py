@@ -62,6 +62,22 @@ class Settings(BaseSettings):
     odoo_pool_timeout: int = 30
     qdrant_pool_size: int = 5
 
+    # ── Embeddings (Multi-provider) ───────────────────────────────────
+    # Provider selection priority: OpenAI → Jina → Local → Placeholder
+    openai_api_key: str = ""
+    openai_base_url: str | None = None
+    embedding_model: str = "text-embedding-3-small"
+    embedding_dimensions: int = 1536
+    embedding_cache_ttl: int = 604800  # 7 days
+
+    # Jina AI (excellent for Arabic)
+    jina_api_key: str = ""
+    jina_model: str = "jina-embeddings-v3"
+
+    # Local sentence-transformers (offline/dev)
+    embedding_local_model: str = ""  # e.g., "all-MiniLM-L6-v2"
+    embedding_device: str = "cpu"    # "cpu" or "cuda"
+
     @property
     def qdrant_url(self) -> str:
         """Full Qdrant URL including port."""

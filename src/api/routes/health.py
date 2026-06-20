@@ -2,7 +2,7 @@
 Health check endpoint.
 
 Provides system health status for monitoring and n8n workflows.
-Phase 2: Added response time measurement and detailed dependency status.
+Production: Includes cache, rate limiter, and embedding service health.
 """
 
 import time
@@ -21,8 +21,7 @@ async def health_check(request: Request) -> dict[str, Any]:
     """
     System health check.
 
-    Returns status of all connected services (Qdrant, Odoo, LLM) with
-    response time measurements.
+    Returns status of all connected services with response time measurements.
     """
     services: dict[str, Any] = {}
     overall_start = time.time()
@@ -31,11 +30,12 @@ async def health_check(request: Request) -> dict[str, Any]:
     try:
         qdrant_store = request.app.state.qdrant_store
         start = time.time()
-        qdrant_ok = await qdrant_store.health_check()
+        qdrant_health = await qdrant_store.health_check()
         elapsed_ms = round((time.time() - start) * 1000, 1)
         services["qdrant"] = {
-            "status": "connected" if qdrant_ok else "disconnected",
+            "status": "connected" if qdrant_health.get("status") == "healthy" else "disconnected",
             "response_time_ms": elapsed_ms,
+            "collections": qdrant_health.get("collections_count", 0),
         }
     except Exception as e:
         services["qdrant"] = {"status": "error", "error": str(e)}
@@ -64,10 +64,66 @@ async def health_check(request: Request) -> dict[str, Any]:
     except Exception as e:
         services["llm"] = {"status": "error", "error": str(e)}
 
+    # Check Embeddings
+    try:
+        embedding_service = request.app.state.embedding_service
+        start = time.time()
+        emb_health = await embedding_service.health_check()
+        elapsed_ms = round((time.time() - start) * 1000, 1)
+        services["embeddings"] = {
+            "status": emb_health.get("status", "unknown"),
+            "provider": emb_health.get("provider", "unknown"),
+            "dimension": emb_health.get("dimension", 0),
+            "response_time_ms": elapsed_ms,
+        }
+    except Exception as e:
+        services["embeddings"] = {"status": "error", "error": str(e)}
+
+    # Check Cache
+    try:
+        cache = request.app.state.cache
+        start = time.time()
+        cache_health = await cache.health_check()
+        elapsed_ms = round((time.time() - start) * 1000, 1)
+        services["cache"] = {
+            "status": cache_health.get("status", "unknown"),
+            "l1_size": cache_health.get("l1_size", 0),
+            "l2_connected": cache_health.get("l2_connected", False),
+            "response_time_ms": elapsed_ms,
+        }
+    except Exception as e:
+        services["cache"] = {"status": "error", "error": str(e)}
+
+    # Check Rate Limiter
+    try:
+        rate_limiter = request.app.state.rate_limiter
+        rl_stats = rate_limiter.get_stats()
+        services["rate_limiter"] = {
+            "status": "active",
+            "algorithm": rl_stats.get("algorithm", "unknown"),
+            "total_checks": rl_stats.get("total_checks", 0),
+            "denial_rate": rl_stats.get("denial_rate", 0),
+        }
+    except Exception as e:
+        services["rate_limiter"] = {"status": "error", "error": str(e)}
+
+    # Check Redis
+    try:
+        redis_client = request.app.state.redis_client
+        if redis_client:
+            start = time.time()
+            await redis_client.ping()
+            elapsed_ms = round((time.time() - start) * 1000, 1)
+            services["redis"] = {"status": "connected", "response_time_ms": elapsed_ms}
+        else:
+            services["redis"] = {"status": "not_configured"}
+    except Exception as e:
+        services["redis"] = {"status": "error", "error": str(e)}
+
     total_ms = round((time.time() - overall_start) * 1000, 1)
     healthy_count = sum(
         1 for s in services.values()
-        if isinstance(s, dict) and s.get("status") in ("connected", "available")
+        if isinstance(s, dict) and s.get("status") in ("connected", "available", "active", "healthy")
     )
 
     return {
@@ -76,5 +132,5 @@ async def health_check(request: Request) -> dict[str, Any]:
         "healthy_count": healthy_count,
         "total_count": len(services),
         "response_time_ms": total_ms,
-        "version": "0.1.0",
+        "version": "1.0.0",
     }
