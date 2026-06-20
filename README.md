@@ -4,7 +4,7 @@
 
 [![CI](https://img.shields.io/badge/CI-Passing-brightgreen)](#)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue)](#)
-[![Tests](https://img.shields.io/badge/Tests-123 Passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/Tests-135Passing-brightgreen)](#)
 [![Phase](https://img.shields.io/badge/Phase-3%20Complete-brightgreen)](#)
 [![License](https://img.shields.io/badge/License-MIT-blue)](#)
 
@@ -19,11 +19,15 @@ Basira is a production-grade AI agents platform for retail and food companies, b
 | 🤖 **6 AI Agents** | Analytics, CX, Internal Ops, Pricing, Supply Chain, General |
 | 🔍 **Advanced RAG** | Hybrid search (semantic + BM25), reranking, query expansion, compression |
 | 🔐 **Production Security** | RBAC, guardrails, PII detection, rate limiting |
-| 📊 **Real-time Dashboard** | Streamlit UI with chat, analytics, and metrics |
+| 📊 **Real-time Dashboard** | Streamlit UI with chat, analytics, metrics, and export |
 | 🔄 **n8n Automation** | 3 workflow templates for reports, CX, and alerts |
-| 📈 **123 Tests** | Unit, integration, and E2E tests with mocked dependencies |
+| 📈 **135 Tests** | Unit, integration, and E2E tests with mocked dependencies |
 | 🗄️ **Persistent Storage** | Redis sessions, PostgreSQL audit log, Qdrant RAG |
 | 🔌 **Connection Pooling** | Odoo and Qdrant connection pools for high concurrency |
+| 📄 **Report Export** | PDF, Excel, CSV, JSON export with Arabic RTL support |
+| 📞 **Escalation Workflow** | Human handoff with auto-detection, tickets, and assignment |
+| 🏪 **POS Integration** | WooCommerce and Square connectors with factory pattern |
+| 📚 **Training Docs** | Arabic training guide and user quick-start guide |
 
 ## Tech Stack
 
