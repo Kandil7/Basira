@@ -4,7 +4,7 @@
 
 [![CI](https://img.shields.io/badge/CI-Passing-brightgreen)](#)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue)](#)
-[![Tests](https://img.shields.io/badge/Tests-123 Passing-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/Tests-239Passing-brightgreen)](#)
 [![Phase](https://img.shields.io/badge/Phase-3%20Complete-brightgreen)](#)
 [![License](https://img.shields.io/badge/License-MIT-blue)](#)
 
@@ -18,12 +18,18 @@ Basira is a production-grade AI agents platform for retail and food companies, b
 |---------|-------------|
 | 🤖 **6 AI Agents** | Analytics, CX, Internal Ops, Pricing, Supply Chain, General |
 | 🔍 **Advanced RAG** | Hybrid search (semantic + BM25), reranking, query expansion, compression |
-| 🔐 **Production Security** | RBAC, guardrails, PII detection, rate limiting |
-| 📊 **Real-time Dashboard** | Streamlit UI with chat, analytics, and metrics |
+| 🧠 **Multi-Provider Embeddings** | OpenAI, Jina, local sentence-transformers with Redis cache |
+| 🔐 **Production Security** | RBAC, guardrails, PII detection, per-endpoint rate limiting |
+| 📊 **Real-time Dashboard** | Streamlit UI with chat, analytics, metrics, and export |
 | 🔄 **n8n Automation** | 3 workflow templates for reports, CX, and alerts |
-| 📈 **123 Tests** | Unit, integration, and E2E tests with mocked dependencies |
-| 🗄️ **Persistent Storage** | Redis sessions, PostgreSQL audit log, Qdrant RAG |
-| 🔌 **Connection Pooling** | Odoo and Qdrant connection pools for high concurrency |
+| 📈 **239 Tests** | Unit, integration, and E2E tests with mocked dependencies |
+| 🗄️ **Multi-Tier Cache** | L1 in-memory LRU + L2 Redis with stampede protection |
+| ⚡ **Production Vector Store** | Async Qdrant with retry, advanced filtering, HNSW optimization |
+| 🚦 **Rate Limiting** | Sliding window, token bucket, per-endpoint/per-role limits |
+| 📄 **Report Export** | PDF, Excel, CSV, JSON export with Arabic RTL support |
+| 📞 **Escalation Workflow** | Human handoff with auto-detection, tickets, and assignment |
+| 🏪 **POS Integration** | WooCommerce and Square connectors with factory pattern |
+| 📚 **Training Docs** | Arabic training guide and user quick-start guide |
 
 ## Tech Stack
 
@@ -32,7 +38,10 @@ Basira is a production-grade AI agents platform for retail and food companies, b
 | **Backend** | Python 3.11+ / FastAPI | REST API and WebSocket support |
 | **Agent Orchestration** | LangGraph | Stateful multi-agent graphs with checkpoints |
 | **LLM** | Groq (groq.com) | Fast inference, OpenAI-compatible |
-| **Vector Store** | Qdrant | Semantic search and RAG |
+| **Embeddings** | OpenAI / Jina / Local | Multi-provider with Redis cache |
+| **Vector Store** | Qdrant (Production) | Async, HNSW optimized, advanced filtering |
+| **Cache** | L1 LRU + Redis | Multi-tier with stampede protection |
+| **Rate Limiting** | Sliding Window / Token Bucket | Per-endpoint, per-role, distributed |
 | **Session Store** | Redis | Persistent conversation history |
 | **Audit Log** | PostgreSQL | Agent action audit trail |
 | **Dashboard** | Streamlit | Internal monitoring UI |

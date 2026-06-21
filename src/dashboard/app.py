@@ -145,7 +145,7 @@ elif page == "📊 Analytics":
         end_date = st.date_input("End Date")
 
     # Tabs for different analytics
-    tab1, tab2, tab3 = st.tabs(["Sales Report", "Branch KPIs", "Inventory"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Sales Report", "Branch KPIs", "Inventory", "Export Reports"])
 
     with tab1:
         st.subheader("Daily Sales Report")
@@ -218,6 +218,49 @@ elif page == "📊 Analytics":
                         df = pd.DataFrame(data["items"])
                         st.dataframe(df)
 
+                except Exception as e:
+                    st.error(f"Error: {str(e)}")
+
+    with tab4:
+        st.subheader("Export Reports")
+
+        export_format = st.selectbox("Export Format", ["PDF", "Excel", "CSV", "JSON"])
+        report_title = st.text_input("Report Title", "تقرير المبيعات")
+
+        if st.button("Export Daily Report"):
+            with st.spinner("Generating export..."):
+                try:
+                    with httpx.Client(timeout=30) as client:
+                        resp = client.post(
+                            f"{API_BASE_URL}/export/daily",
+                            json={
+                                "date": str(start_date),
+                                "format": export_format.lower(),
+                            },
+                            headers={"X-Internal-Key": "change-me-in-production"},
+                        )
+
+                        if resp.status_code == 200:
+                            # Download file
+                            content_type = resp.headers.get("content-type", "")
+                            if "pdf" in content_type:
+                                ext = "pdf"
+                            elif "spreadsheet" in content_type:
+                                ext = "xlsx"
+                            elif "csv" in content_type:
+                                ext = "csv"
+                            else:
+                                ext = "json"
+
+                            st.download_button(
+                                label=f"Download {export_format}",
+                                data=resp.content,
+                                file_name=f"report_{start_date}.{ext}",
+                                mime=content_type,
+                            )
+                            st.success("Report generated successfully!")
+                        else:
+                            st.error(f"Export failed: {resp.status_code}")
                 except Exception as e:
                     st.error(f"Error: {str(e)}")
 
@@ -309,8 +352,26 @@ elif page == "⚙️ Settings":
     st.markdown("""
     **Basira (بصيرة)** — Multi-Agent AI Platform for Retail & Food
 
-    - **Version**: 0.1.0
-    - **Phase**: 3 (Dashboard UI)
+    - **Version**: 1.0.0
+    - **Phase**: 3 (Production Ready)
     - **Agents**: 6 (Analytical, CX, Ops, General, Pricing, Supply Chain)
-    - **Tests**: 67 passing
+    - **Features**: Export, Escalation, POS Integration, Training Docs
     """)
+
+    # Pilot monitoring section
+    st.divider()
+    st.subheader("📊 Pilot Monitoring")
+    if st.button("Generate Pilot Report"):
+        try:
+            with httpx.Client(timeout=10) as client:
+                resp = client.get(
+                    f"{API_BASE_URL}/health",
+                    headers={"X-Internal-Key": "change-me-in-production"},
+                )
+                if resp.status_code == 200:
+                    st.success("✅ System is healthy for pilot")
+                    st.json(resp.json())
+                else:
+                    st.warning("⚠️ System health check failed")
+        except Exception as e:
+            st.error(f"Connection error: {str(e)}")

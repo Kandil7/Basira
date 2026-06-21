@@ -1,10 +1,65 @@
-.env
+# ── Python ──────────────────────────────────────────────────────────────
 __pycache__/
-*.pyc
-*.pyo
-.pytest_cache/
+*.py[cod]
+*$py.class
+*.so
 *.egg-info/
+*.egg
 dist/
 build/
+eggs/
+*.whl
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ── Virtual Environment ────────────────────────────────────────────────
+venv/
+.venv/
+ENV/
+env/
+
+# ── Testing ────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+
+# ── Type Checking ──────────────────────────────────────────────────────
 .mypy_cache/
+.pytype/
+.mypy_cache/
+
+# ── Linting ────────────────────────────────────────────────────────────
 .ruff_cache/
+
+# ── IDE ────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# ── Environment ────────────────────────────────────────────────────────
+.env
+.env.local
+.env.production
+.env.staging
+
+# ── Docker ─────────────────────────────────────────────────────────────
+docker-compose.override.yml
+
+# ── OS ─────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Jupyter ────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Logs ───────────────────────────────────────────────────────────────
+*.log
+logs/
+docs/plan/client_offer.md
