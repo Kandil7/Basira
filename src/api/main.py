@@ -27,11 +27,19 @@ from src.infrastructure.embeddings.service import EmbeddingService
 from src.infrastructure.cache.cache import MultiTierCache
 from src.infrastructure.ratelimit.limiter import RateLimiter, RateLimitConfig
 from src.infrastructure.ratelimit.middleware import ProductionRateLimitMiddleware
+from src.infrastructure.voice.asr import SpeechRecognizer
+from src.infrastructure.voice.tts import SpeechSynthesizer
+from src.infrastructure.voice.pipeline import VoicePipeline
 from src.infrastructure.session.redis_store import RedisSessionStore
 from src.infrastructure.session.session_store import SessionStore
 from src.infrastructure.database.audit import AuditLogService
 from src.infrastructure.database.models import init_database, create_tables, close_database
 from src.infrastructure.pooling import init_pools, get_pool_stats
+from src.infrastructure.memory import ConversationMemory, ContextBuilder
+from src.infrastructure.agent_context import AgentContextManager
+from src.infrastructure.collaboration import AgentDelegator, CollaborationRouter
+from src.infrastructure.metrics import MetricsCollector
+from src.infrastructure.observability import init_telemetry, AgentMetrics
 from src.domain.services.analytics_service import AnalyticsService
 from src.domain.services.customer_service import CustomerService
 from src.domain.services.document_service import DocumentService
@@ -145,6 +153,63 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         supply_chain_service=supply_chain_service,
     )
 
+    # ── Voice Pipeline (ASR + TTS) ────────────────────────────────────
+    voice_pipeline = None
+    groq_api_key = settings.groq_api_key
+    if groq_api_key and groq_api_key != "change-me":
+        try:
+            asr = SpeechRecognizer(
+                api_key=groq_api_key,
+                model="whisper-large-v3",
+                base_url=settings.groq_base_url,
+            )
+            tts = SpeechSynthesizer(
+                api_key=groq_api_key,
+                model="canopylabs/orpheus-arabic-saudi",
+                base_url=settings.groq_base_url,
+            )
+
+            # Create agent function wrapper for voice pipeline
+            async def voice_agent_fn(query: str, session_id: str | None = None) -> dict:
+                from src.agents.state import create_initial_state
+                state = create_initial_state(query, session_id=session_id)
+                result = await compiled_graph.ainvoke(state)
+                return {
+                    "response": result.get("response", ""),
+                    "intent": result.get("intent", "unknown"),
+                    "agent": result.get("agent", "unknown"),
+                }
+
+            voice_pipeline = VoicePipeline(
+                asr=asr,
+                tts=tts,
+                agent_fn=voice_agent_fn,
+            )
+            logger.info("voice.pipeline_initialized")
+        except Exception as e:
+            logger.warning("voice.pipeline_init_failed", error=str(e))
+    else:
+        logger.warning("voice.pipeline_skipped", reason="No Groq API key configured")
+
+    # ── Memory & Context ───────────────────────────────────────────────
+    conversation_memory = ConversationMemory(settings)
+    context_builder = ContextBuilder(conversation_memory)
+    agent_context = AgentContextManager(conversation_memory)
+
+    # ── Collaboration ──────────────────────────────────────────────────
+    delegator = AgentDelegator()
+    collaboration_router = CollaborationRouter()
+
+    # ── Metrics & Observability ────────────────────────────────────────
+    metrics_collector = MetricsCollector()
+    agent_metrics = AgentMetrics()
+
+    # Initialize OpenTelemetry (optional)
+    try:
+        init_telemetry(service_name="basira-api", enabled=True)
+    except Exception:
+        logger.warning("telemetry.init_skipped")
+
     # ── Store on app state ───────────────────────────────────────────
     app.state.settings = settings
     app.state.analytics_service = analytics_service
@@ -161,6 +226,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.rate_limiter = rate_limiter
     app.state.audit_log = audit_log
     app.state.redis_client = redis_client
+    app.state.voice_pipeline = voice_pipeline
+    app.state.conversation_memory = conversation_memory
+    app.state.context_builder = context_builder
+    app.state.agent_context = agent_context
+    app.state.delegator = delegator
+    app.state.collaboration_router = collaboration_router
+    app.state.metrics_collector = metrics_collector
+    app.state.agent_metrics = agent_metrics
     app.state.get_pool_stats = get_pool_stats
 
     logger.info(
@@ -223,6 +296,7 @@ def create_app() -> FastAPI:
     from src.api.routes.supply_chain import router as supply_chain_router
     from src.api.routes.export import router as export_router
     from src.api.routes.escalation import router as escalation_router
+    from src.api.routes.voice import router as voice_router
 
     app.include_router(chat_router, prefix="/api/v1", tags=["Chat"])
     app.include_router(analytics_router, prefix="/api/v1", tags=["Analytics"])
@@ -232,6 +306,7 @@ def create_app() -> FastAPI:
     app.include_router(supply_chain_router, prefix="/api/v1", tags=["Supply Chain"])
     app.include_router(export_router, prefix="/api/v1", tags=["Export"])
     app.include_router(escalation_router, prefix="/api/v1", tags=["Escalation"])
+    app.include_router(voice_router, prefix="/api/v1", tags=["Voice"])
 
     return app
 
