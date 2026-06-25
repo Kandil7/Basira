@@ -10,8 +10,11 @@ RUN apt-get update && \
     curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Install dependencies only (no source yet for better caching)
-COPY pyproject.toml .
+# Copy source for hatchling to find the package
+COPY pyproject.toml README.md ./
+COPY src/__init__.py src/__init__.py
+
+# Install dependencies only
 RUN pip install --no-cache-dir --prefix=/install .
 
 # ── Production stage ───────────────────────────────────────────────────
